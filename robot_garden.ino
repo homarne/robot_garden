@@ -1,6 +1,5 @@
 #include <Adafruit_NeoPixel.h>
-#include "robot_garden_lib_1.h"
-#include "death.h"
+#include "robot_garden_lib.h"
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
@@ -17,51 +16,7 @@
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4*144, PIN, NEO_GRB + NEO_KHZ800);
 
-//class SimpleChase
-//{
-//  Adafruit_NeoPixel _strip;
-//  int _red;
-//  int _green;
-//  int _blue;
-//  float _fade_factor;
-//  
-//  public:
-//  SimpleChase(
-//    Adafruit_NeoPixel strip,
-//    int red,
-//    int green,
-//    int blue,
-//    float fade_factor)
-//  {
-//    _strip = strip;
-//    _red = red;
-//    _green = green;
-//    _blue = blue;
-//    _fade_factor = fade_factor;
-//  }
-//  
-//  void Chase()
-//  {
-//    for(uint16_t i=0; i<_strip.numPixels(); i++) 
-//    {
-//      _strip.setPixelColor(i, _strip.Color(_red,_green,_blue));
-//      int _fade_count=i;
-//      int _scaled_red=255;
-//      while(_fade_count>0 && _scaled_red>0)
-//      {
-//        _scaled_red=(float)_scaled_red*_fade_factor;
-//        _fade_count-=1;
-//        _strip.setPixelColor(_fade_count, _strip.Color(_scaled_red,0,0));
-//      }
-//      _strip.show();
-//      delay(1);
-//    }
-//  }
-//};
-
 SimpleChase myChase = SimpleChase(strip,255,0,0,0.8);
-
-SimpleDeath myDeath = SimpleDeath(1,2,3);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -79,7 +34,6 @@ void setup() {
   Serial.begin(9600);
   Serial.print("do it");
   Serial.println(" again...");
-  myDeath.Die();
   
   strip.begin();
   strip.setBrightness(255);

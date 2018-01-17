@@ -1,5 +1,5 @@
 #include <Adafruit_NeoPixel.h>
-#include "robot_garden_lib_1.h"
+#include "robot_garden_lib.h"
 
 SimpleChase::SimpleChase(
     Adafruit_NeoPixel strip,
