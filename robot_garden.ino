@@ -16,7 +16,10 @@
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4*144, PIN, NEO_GRB + NEO_KHZ800);
 
-SimpleChase myChase = SimpleChase(strip,255,0,0,0.8);
+SimpleChase strand_01 = SimpleChase(strip,0,144,255,0,0,0.8,8);
+SimpleChase strand_02 = SimpleChase(strip,144,288,0,255,0,0.8,4);
+SimpleChase strand_03 = SimpleChase(strip,288,432,0,0,255,0.8,2);
+SimpleChase strand_04 = SimpleChase(strip,432,576,255,255,255,0.8,1);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -44,7 +47,16 @@ void setup() {
 void loop() {
 
 //    colorPoint(strip.Color(255, 0, 0), 0); // Red
-    myChase.Chase();
+    //myChase.Chase();
+    
+    strand_01.ChaseStep();
+    strand_02.ChaseStep();
+    strand_03.ChaseStep();
+    strand_04.ChaseStep();
+    
+    strip.show();
+    delay(1);
+    
     Serial.println("...and again");
 
 //  // Some example procedures showing how to display to the pixels:
