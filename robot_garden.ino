@@ -55,9 +55,9 @@ void loop() {
     strand_04.ChaseStep();
     
     strip.show();
-    delay(1);
+    //delay(1);
     
-    Serial.println("...and again");
+    //Serial.println("...and again");
 
 //  // Some example procedures showing how to display to the pixels:
 //  colorWipe(strip.Color(255, 0, 0), 50); // Red

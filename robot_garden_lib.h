@@ -4,6 +4,16 @@
 //#include "Arduino.h"
 #include <Adafruit_NeoPixel.h>
 
+const int robo_colors[7][3] = {
+    {255, 0, 0},// red
+    {0, 255, 0},// green
+    {0, 0, 255},// blue
+    {255, 255, 0},// ???
+    {255, 0, 255},// ???
+    {0, 255, 255},// ???
+    {255, 255, 255}// white
+  };
+
 class SimpleChase
 {
   Adafruit_NeoPixel _strip;
@@ -20,6 +30,8 @@ class SimpleChase
 
   int _head_num; // first lit pixel of the chase
   int _tail_num; // last lit pixel of the chase
+
+  int _direction; // 0 = chase up 1 = chase down
   
   public:
     SimpleChase(
@@ -36,6 +48,11 @@ class SimpleChase
     void Chase();
     void ChaseStep();
     void _ChaseStep();
+    void _Set_Random_Color();
+    void _set_Random_Speed();
+    void _Set_Random_Tail();
+    void _Set_Random_Wait();
+    int _Direction(int pixel_number);
 };
 
 #endif

@@ -15,6 +15,7 @@ SimpleChase::SimpleChase(
   _red = red;
   _green = green;
   _blue = blue;
+//  _fade_factor = fade_factor;
   _fade_factor = fade_factor;
   _rate = rate;
 
@@ -120,17 +121,55 @@ void SimpleChase::ChaseStep()
   }
 }
 
+void SimpleChase::_Set_Random_Color()
+{
+//    _red = random(0, 255);
+//    _green = random(0,255);
+//    _blue = random(0,255);
+
+    int _color_count = sizeof(robo_colors)/(sizeof(int)*3); // number of rgb colors in color array
+    int _new_color = random(0,_color_count);
+
+    _red = robo_colors[_new_color][0];
+    _green = robo_colors[_new_color][1];
+    _blue = robo_colors[_new_color][2];
+}
+
+int SimpleChase::_Direction(int pixel_number)
+{
+  if (_direction == 0){
+    return pixel_number;
+  }
+  else{
+    return _start_num + _end_num - pixel_number - 1;
+  }
+}
+
+void SimpleChase::_Set_Random_Tail()
+{
+  int tail_factor = random(75,95);
+  _fade_factor = (float)tail_factor/100;
+  Serial.println("tail factor: ");
+  Serial.println(_direction);
+}
+
+
 void SimpleChase::_ChaseStep()
 {
   if(_tail_num >= _end_num)
   {
+    _Set_Random_Color();
+    _direction = random(0,2);
+    Serial.println("direction: ");
+    Serial.println(_direction);
+    _Set_Random_Tail();
     _head_num = _start_num;
     _tail_num = _start_num;
   }
   
   if (_head_num < _end_num) // dont update pixels beyond the end  
   {
-    _strip.setPixelColor(_head_num, _strip.Color(_red,_green,_blue));
+    _strip.setPixelColor(_Direction(_head_num), _strip.Color(_red,_green,_blue));
   }
   int _fade_count=_head_num;
 
@@ -151,7 +190,7 @@ void SimpleChase::_ChaseStep()
     _fade_count-=1;
     if (_fade_count < _end_num) // dont update pixels beyond the end
     {
-      _strip.setPixelColor(_fade_count, _strip.Color(_scaled_red,_scaled_green,_scaled_blue));
+      _strip.setPixelColor(_Direction(_fade_count), _strip.Color(_scaled_red,_scaled_green,_scaled_blue));
     }
   }
   _tail_num = _fade_count; // update the tail position
