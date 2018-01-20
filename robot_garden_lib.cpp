@@ -25,7 +25,8 @@ SimpleChase::SimpleChase(
   _head_num = _start_num; // initialize head to start
   _tail_num = _start_num; // initilize tail to start
 
-  _drop_count = _rate;
+  _drop_count = 0;
+  _delay = 0;
 }
   
 //void SimpleChase::Chase()
@@ -104,20 +105,55 @@ void SimpleChase::Chase()
   }
 }
 
-void SimpleChase::ChaseStep()
+int SimpleChase::ChaseStep()
 {
-  if (_rate == 10)
+  if (_delay > 0)
   {
+    _delay -= 1;
+    return;
+  }
+  
+  if (_rate >= 10)
+  {
+     //Serial.println("rate gt.e 10");
     _ChaseStep();
   }
-  else if (_drop_count > 0)
+  else if (_rate >= 0)
   {
-    _ChaseStep();
-    _drop_count -= 1;
+    //Serial.println("rate gt.e 0");
+    if (_drop_count > 0)
+    {
+      _ChaseStep();
+      _drop_count -= 1;
+    }
+    else
+    {
+      _drop_count = max(_rate, 1);
+    }
   }
-  else 
+  else if (_rate > -10)
   {
-    _drop_count = _rate;
+//    Serial.println("rate gt -10");
+//    Serial.print("drop count: ");
+//    Serial.println(_drop_count);
+    if (_drop_count == 0)
+    {
+      _ChaseStep();
+      _drop_count = max(-_rate, 10);
+    }
+    else
+    {
+      _drop_count -= 1;
+    }
+  }
+  if(_tail_num == _end_num)
+  {
+    _delay = random(0,100);
+    return 0;
+  }
+  else
+  {
+    return 1;
   }
 }
 
@@ -149,8 +185,7 @@ void SimpleChase::_Set_Random_Tail()
 {
   int tail_factor = random(75,95);
   _fade_factor = (float)tail_factor/100;
-  Serial.println("tail factor: ");
-  Serial.println(_direction);
+
 }
 
 
@@ -160,9 +195,9 @@ void SimpleChase::_ChaseStep()
   {
     _Set_Random_Color();
     _direction = random(0,2);
-    Serial.println("direction: ");
-    Serial.println(_direction);
     _Set_Random_Tail();
+    _rate = random(1,11);
+ 
     _head_num = _start_num;
     _tail_num = _start_num;
   }

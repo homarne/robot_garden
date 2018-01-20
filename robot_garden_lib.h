@@ -32,6 +32,8 @@ class SimpleChase
   int _tail_num; // last lit pixel of the chase
 
   int _direction; // 0 = chase up 1 = chase down
+
+  int _delay; // number of steps to wait before starting chase
   
   public:
     SimpleChase(
@@ -46,7 +48,7 @@ class SimpleChase
     
     void ChaseLoop();
     void Chase();
-    void ChaseStep();
+    int  ChaseStep();
     void _ChaseStep();
     void _Set_Random_Color();
     void _set_Random_Speed();
