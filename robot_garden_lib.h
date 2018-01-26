@@ -37,7 +37,7 @@ class SimpleChase
   
   public:
     SimpleChase(
-      Adafruit_NeoPixel strip,
+      Adafruit_NeoPixel &strip,
       int first,
       int last,
       int red,
@@ -55,6 +55,7 @@ class SimpleChase
     void _Set_Random_Tail();
     void _Set_Random_Wait();
     int _Direction(int pixel_number);
+    int run_status;
 };
 
 #endif

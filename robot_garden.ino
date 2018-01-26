@@ -6,6 +6,14 @@
 
 #define PIN 4
 
+#define STOP_REQ 6
+#define STOP_ACK 5
+
+#define MASTER 1
+#define SLAVE 0
+
+#define RUN_COUNT 1000
+
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -14,22 +22,25 @@
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(4*144, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(3*144, PIN, NEO_GRB + NEO_KHZ800);
 
 SimpleChase strand_01 = SimpleChase(strip,0,144,255,0,0,0.8,10);
 SimpleChase strand_02 = SimpleChase(strip,144,288,0,255,0,0.8,7);
 SimpleChase strand_03 = SimpleChase(strip,288,432,0,0,255,0.8,4);
-SimpleChase strand_04 = SimpleChase(strip,432,576,255,255,255,0.8,1);
-
+//SimpleChase strand_04 = SimpleChase(strip,432,576,255,255,255,0.8,1);
+//
 int status_1 = 0;
 int status_2 = 0;
 int status_3 = 0;
-int status_4 = 0;
+//int status_4 = 0;
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
+
+int ms_mode = MASTER;
+bool stop_request = false;
 
 void setup() {
   // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
@@ -40,44 +51,71 @@ void setup() {
 
 
   Serial.begin(9600);
-  Serial.print("do it");
-  Serial.println(" again...");
+  Serial.println("setup");
   
   strip.begin();
   strip.setBrightness(255);
   strip.show(); // Initialize all pixels to 'off'
 
+  if (ms_mode == MASTER)
+  {
+    pinMode(STOP_ACK, INPUT_PULLUP);     // stop ack is input
+    pinMode(STOP_REQ, OUTPUT);          // stop request is output
+    digitalWrite(STOP_REQ, HIGH);      // stop request unasserted
+  }
+  else
+  {
+    pinMode(STOP_ACK, OUTPUT);          // stop acknowledge is output
+    digitalWrite(STOP_ACK, LOW);       // stop acknowledge is unasserted
+    pinMode(STOP_REQ, INPUT_PULLUP);  // stop request is input
+  }
+
 }
 
 void loop() {
-
-//    colorPoint(strip.Color(255, 0, 0), 0); // Red
-    //myChase.Chase();
-
-//    status_1 = strand_01.ChaseStep();
-//    status_2 = strand_02.ChaseStep();
-//    status_3 = strand_03.ChaseStep();
-//    status_4 = strand_04.ChaseStep();
-//    
-//    strip.show();
       
-    Serial.println("phase 1 - run for a while");
+    Serial.println("running");
     
-    for (int i=0; i <= 1000; i++)
+    int i = 0;
+    bool run = true; 
+    while (run)
     {
       status_1 = strand_01.ChaseStep();
       status_2 = strand_02.ChaseStep();
       status_3 = strand_03.ChaseStep();
-      status_4 = strand_04.ChaseStep();
+//      status_4 = strand_04.ChaseStep();
       
       strip.show();
+
+      // if slave, check for stop request
+      if (ms_mode == SLAVE)
+      {
+        run = digitalRead(STOP_REQ);
+      }
+      else // mode == MASTER
+      {
+        i++;
+        if (i >= RUN_COUNT)
+        {
+          run = false;
+        }
+      }
+      
     }
 
-    Serial.println("phase 2 - wait for all stop");
-    Serial.println((status_1 || status_2 || status_3 || status_4));
-    Serial.println((status_1 + status_2 + status_3 + status_4));
+    Serial.println("stopping");
 
-    while (status_1 == 1 || status_2 == 1 || status_3 == 1 || status_4 == 1)
+    if (ms_mode == MASTER)
+    {
+      Serial.println("master requesting stop");
+      
+      digitalWrite(STOP_REQ, LOW);  // assert stop request
+    }
+    
+//    Serial.println((status_1 || status_2 || status_3 || status_4));
+//    Serial.println((status_1 + status_2 + status_3 + status_4));
+
+    while (status_1 == 1 || status_2 == 1 || status_3 == 1) // || status_4 == 1)
     {    
       //Serial.println("waiting");
       if (status_1 == 1)
@@ -92,47 +130,55 @@ void loop() {
       {
         status_3 = strand_03.ChaseStep();
       }
-      if (status_4 == 1)
-      {
-        status_4 = strand_04.ChaseStep(); 
-      }
+//      if (status_4 == 1)
+//      {
+//        status_4 = strand_04.ChaseStep(); 
+//      }
 
       strip.show();
     }
 
-//    while ((status_1 || status_2 || status_3 || status_4) == 1)
-//    {
-//      while (status_1 == 1)
-//      {
-//        status_1 = strand_01.ChaseStep();
-//      }
-//      while (status_2 == 1)
-//      {
-//        status_2 = strand_02.ChaseStep();
-//      }
-//      while (status_3 == 1)
-//      {
-//        status_3 = strand_03.ChaseStep();
-//      }
-//      while (status_4 == 1)
-//      {
-//        status_4 = strand_04.ChaseStep();
-//      }
-//
-//      strip.show();
-//    }
+    Serial.println("stopped");
+    
+    if (ms_mode == SLAVE)
+    {
+      Serial.println("slave waiting for run");
+      
+      pinMode(STOP_ACK, INPUT_PULLUP); // acknowledge stop request by placing pin in pull-up state
+                                      // when all STOP_ACK pins are acknoleded, the pin on MASTER will go high
+      
+      while (run != true)
+        {
+          run = digitalRead(STOP_REQ);
+        }
+    }
+    else // ms_mode = MASTER
+    {
+      Serial.println("master waiting for all stopped");
+      
+      bool all_acked = false;
+      while (all_acked == false)
+      {
+        all_acked = digitalRead(STOP_ACK);
+      }
+      
+      Serial.println("master found all stopped - pausing");
+      delay(5000);
+    }
+      
+      Serial.println("resuming");
 
-    Serial.println("phase 3 - idle a wee bit");
-    
-    Serial.println((status_1 || status_2 || status_3 || status_4));
-    Serial.println((status_1 + status_2 + status_3 + status_4));
-    
-    delay(5000);
+      // if master, unassert stop request
+      // if slave, unassert stop ack
     
 
+    
+    
+//    Serial.println((status_1 || status_2 || status_3 || status_4));
+//    Serial.println((status_1 + status_2 + status_3 + status_4));
 
     
-    //Serial.println("...and again");
+    
 
 //  // Some example procedures showing how to display to the pixels:
 //  colorWipe(strip.Color(255, 0, 0), 50); // Red

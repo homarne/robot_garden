@@ -2,7 +2,7 @@
 #include "robot_garden_lib.h"
 
 SimpleChase::SimpleChase(
-    Adafruit_NeoPixel strip,
+    Adafruit_NeoPixel &strip,
     int first,
     int last,
     int red,
@@ -110,6 +110,7 @@ int SimpleChase::ChaseStep()
   if (_delay > 0)
   {
     _delay -= 1;
+    run_status=1;
     return;
   }
   
@@ -149,10 +150,12 @@ int SimpleChase::ChaseStep()
   if(_tail_num == _end_num)
   {
     _delay = random(0,100);
+    run_status =0;
     return 0;
   }
   else
   {
+    run_status=1;
     return 1;
   }
 }
@@ -196,7 +199,7 @@ void SimpleChase::_ChaseStep()
     _Set_Random_Color();
     _direction = random(0,2);
     _Set_Random_Tail();
-    _rate = random(1,11);
+    _rate = random(5,11);
  
     _head_num = _start_num;
     _tail_num = _start_num;
