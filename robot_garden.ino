@@ -12,6 +12,9 @@
 #define MASTER 1
 #define SLAVE 0
 
+#define UNASSERT false
+#define ASSERT true
+
 #define RUN_COUNT 1000
 
 // Parameter 1 = number of pixels in strip
@@ -59,15 +62,11 @@ void setup() {
 
   if (ms_mode == MASTER)
   {
-    pinMode(STOP_ACK, INPUT_PULLUP);     // stop ack is input
-    pinMode(STOP_REQ, OUTPUT);          // stop request is output
-    digitalWrite(STOP_REQ, HIGH);      // stop request unasserted
+    initialize_master_io();
   }
   else
   {
-    pinMode(STOP_ACK, OUTPUT);          // stop acknowledge is output
-    digitalWrite(STOP_ACK, LOW);       // stop acknowledge is unasserted
-    pinMode(STOP_REQ, INPUT_PULLUP);  // stop request is input
+    initialize_slave_io();
   }
 
 }
@@ -90,7 +89,7 @@ void loop() {
       // if slave, check for stop request
       if (ms_mode == SLAVE)
       {
-        run = digitalRead(STOP_REQ);
+        run = slave_check_for_stop();
       }
       else // mode == MASTER
       {
@@ -100,16 +99,13 @@ void loop() {
           run = false;
         }
       }
-      
     }
 
     Serial.println("stopping");
 
     if (ms_mode == MASTER)
     {
-      Serial.println("master requesting stop");
-      
-      digitalWrite(STOP_REQ, LOW);  // assert stop request
+      master_stop_request(ASSERT);
     }
     
 //    Serial.println((status_1 || status_2 || status_3 || status_4));
@@ -142,76 +138,104 @@ void loop() {
     
     if (ms_mode == SLAVE)
     {
-      Serial.println("slave waiting for run");
-      
-      pinMode(STOP_ACK, INPUT_PULLUP); // acknowledge stop request by placing pin in pull-up state
-                                      // when all STOP_ACK pins are acknoleded, the pin on MASTER will go high
-      
-      while (run != true)
-        {
-          run = digitalRead(STOP_REQ);
-        }
+      slave_stop_ack(ASSERT);
+      slave_wait_for_run();
     }
     else // ms_mode = MASTER
     {
-      Serial.println("master waiting for all stopped");
+      master_wait_for_all_stopped();
       
-      bool all_acked = false;
-      while (all_acked == false)
-      {
-        all_acked = digitalRead(STOP_ACK);
-      }
+      Serial.println("master pausing");
       
-      Serial.println("master found all stopped - pausing");
       delay(5000);
     }
       
-      Serial.println("resuming");
+    Serial.println("resuming");
 
-      // if master, unassert stop request
-      // if slave, unassert stop ack
-    
+    if (ms_mode == MASTER)
+    {
+      master_stop_request(UNASSERT);
+    }
+    else // ms_mode = SLAVE
+    {
+      slave_stop_ack(UNASSERT);
+    }
 
-    
-    
-//    Serial.println((status_1 || status_2 || status_3 || status_4));
-//    Serial.println((status_1 + status_2 + status_3 + status_4));
-
-    
-    
 
 //  // Some example procedures showing how to display to the pixels:
 //  colorWipe(strip.Color(255, 0, 0), 50); // Red
 //  colorWipe(strip.Color(0, 255, 0), 50); // Green
 //  colorWipe(strip.Color(0, 0, 255), 50); // Blue
-////colorWipe(strip.Color(0, 0, 0, 255), 50); // White RGBW
-//  // Send a theater pixel chase in...
-//  theaterChase(strip.Color(127, 127, 127), 50); // White
-//  theaterChase(strip.Color(127, 0, 0), 50); // Red
-//  theaterChase(strip.Color(0, 0, 127), 50); // Blue
-//
-//  rainbow(20);
-//  rainbowCycle(20);
-//  theaterChaseRainbow(50);
+
 }
 
-// Move one dot through the strip
-void colorPoint(uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
-//    Serial.print(7) 
-    strip.setPixelColor(i, strip.Color(255,0,0));
-    int x=i;
-    int y=255;
-    while(x>0 && y>0){
-      y=(float)y*.8;
-      x=x-1;
-      strip.setPixelColor(x, strip.Color(y,0,0));
-    }
-    strip.show();
-    delay(wait);
+void initialize_master_io()
+{
+  pinMode(STOP_ACK, INPUT_PULLUP);     // stop ack is input
+  pinMode(STOP_REQ, OUTPUT);          // stop request is output
+  digitalWrite(STOP_REQ, HIGH);      // stop request unasserted
+}
+
+void initialize_slave_io()
+{
+  pinMode(STOP_ACK, OUTPUT);          // stop acknowledge is output
+  digitalWrite(STOP_ACK, LOW);       // stop acknowledge is unasserted
+  pinMode(STOP_REQ, INPUT_PULLUP);  // stop request is input
+}
+
+void master_stop_request(bool state)
+{
+  if (state) // ASSERT
+  {
+    digitalWrite(STOP_REQ, LOW);  // assert stop request
+  }
+  else // UNASSERT
+  {
+    digitalWrite(STOP_REQ, HIGH);  // unassert stop request
   }
 }
 
+void master_wait_for_all_stopped()
+{
+  Serial.println("master waiting for all stopped");
+  
+  bool all_acked = false;
+  while (all_acked == false)
+  {
+    all_acked = digitalRead(STOP_ACK);
+  }
+}
+
+bool slave_check_for_stop()
+{
+  return digitalRead(STOP_REQ);
+}
+
+void slave_wait_for_run()
+{
+  Serial.println("slave waiting for run");
+  
+  bool run = false;
+  while (run != true)
+    {
+      run = digitalRead(STOP_REQ);
+    }
+}
+
+void slave_stop_ack(bool state)
+{
+  if (state) // ASSERT
+  {
+    pinMode(STOP_ACK, INPUT_PULLUP); // acknowledge stop request by placing STOP_ACK pin in pull-up state
+                                    // when all slave STOP_ACK pins are acknowleded, 
+                                   // the STOP_ACK pin on MASTER will go high
+  }
+  else // UNASSERT
+  {
+    pinMode(STOP_ACK, OUTPUT);      // set STOP_ACK pin as output
+    digitalWrite(STOP_ACK, LOW);   // and set output low
+  }
+}
 
 
 // Fill the dots one after the other with a color
@@ -223,78 +247,4 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
-void rainbow(uint8_t wait) {
-  uint16_t i, j;
 
-  for(j=0; j<256; j++) {
-    for(i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel((i+j) & 255));
-    }
-    strip.show();
-    delay(wait);
-  }
-}
-
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle(uint8_t wait) {
-  uint16_t i, j;
-
-  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
-    for(i=0; i< strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
-    }
-    strip.show();
-    delay(wait);
-  }
-}
-
-//Theatre-style crawling lights.
-void theaterChase(uint32_t c, uint8_t wait) {
-  for (int j=0; j<10; j++) {  //do 10 cycles of chasing
-    for (int q=0; q < 3; q++) {
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, c);    //turn every third pixel on
-      }
-      strip.show();
-
-      delay(wait);
-
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, 0);        //turn every third pixel off
-      }
-    }
-  }
-}
-
-//Theatre-style crawling lights with rainbow effect
-void theaterChaseRainbow(uint8_t wait) {
-  for (int j=0; j < 256; j++) {     // cycle all 256 colors in the wheel
-    for (int q=0; q < 3; q++) {
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
-      }
-      strip.show();
-
-      delay(wait);
-
-      for (uint16_t i=0; i < strip.numPixels(); i=i+3) {
-        strip.setPixelColor(i+q, 0);        //turn every third pixel off
-      }
-    }
-  }
-}
-
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
